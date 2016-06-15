@@ -19,6 +19,7 @@
     DOM.phrase = $(".phrase");
     DOM.passphrase = $(".passphrase");
     DOM.generate = $(".generate");
+    DOM.generateSeed = $(".generateSeed");
     DOM.seed = $(".seed");
     DOM.rootKey = $(".root-key");
     DOM.extendedPrivKey = $(".extended-priv-key");
@@ -51,6 +52,7 @@
         DOM.phrase.on("input", delayedPhraseChanged);
         DOM.passphrase.on("input", delayedPhraseChanged);
         DOM.generate.on("click", generateClicked);
+        DOM.generateSeed.on("click", generateSeedClicked);
         DOM.more.on("click", showMore);
         DOM.bip32path.on("input", bip32Changed);
         DOM.bip44purpose.on("input", bip44Changed);
@@ -120,6 +122,29 @@
         }, 50);
     }
 
+    function generateSeedClicked() {
+        showPending();
+        hideValidationError();
+        // Get the seed
+        var errorText = findSeedErrors(DOM.seed.val());
+        if (errorText) {
+            showValidationError(errorText);
+            return;
+        }
+        // Get the derivation path
+        var errorText = findDerivationPathErrors();
+        if (errorText) {
+            showValidationError(errorText);
+            return;
+        }
+        // Calculate and display
+        DOM.phrase.val("");
+        DOM.passphrase.val("");
+        calcBip32Seed(phrase, passphrase, derivationPath, DOM.seed.val());
+        displayBip32Info();
+        hidePending();
+    }
+
     function tabClicked(e) {
         var activePath = $(e.target.getAttribute("href") + " .path");
         derivationPath = activePath.val();
@@ -170,8 +195,13 @@
         return words;
     }
 
-    function calcBip32Seed(phrase, passphrase, path) {
-        seed = mnemonic.toSeed(phrase, passphrase);
+    function calcBip32Seed(phrase, passphrase, path, seedParam) {
+        if (typeof seedParam == "undefined") {
+            seed = mnemonic.toSeed(phrase, passphrase);
+        }
+        else {
+            seed = seedParam;
+        }
         bip32RootKey = bitcoin.HDNode.fromSeedHex(seed, network);
         bip32ExtendedKey = bip32RootKey;
         // Derive the key from the path
@@ -202,6 +232,17 @@
         DOM.feedback
             .text("")
             .hide();
+    }
+
+    function findSeedErrors(seedParam) {
+        var hexCheck = /^[0-9A-F]{128}$/i; 
+        if (seedParam.length != 128) {
+           return "Invalid seed length";
+        }
+        if (!hexCheck.test(seedParam)) {
+            return "Invalid seed value";
+        }
+        return false;
     }
 
     function findPhraseErrors(phrase) {
