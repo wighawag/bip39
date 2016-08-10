@@ -72,6 +72,7 @@
     function networkChanged(e) {
         var network = e.target.value;
         networks[network].onSelect();
+        setBip44DerivationPath();
         delayedPhraseChanged();
     }
 
@@ -261,8 +262,36 @@
         function calculateValues() {
             setTimeout(function() {
                 var key = bip32ExtendedKey.derive(index);
-                var address = key.getAddress().toString();
-                var privkey = key.privKey.toWIF(network);
+                var address;
+                if (!network.ethereum) { 
+                    address = key.getAddress().toString();                
+                }
+                else {
+                    var pubData = new bitcoin.ECKey(key.privKey.d, false).pub.toHex();
+                    var buffer = new ArrayBuffer(64);
+                    var view = new Uint8Array(buffer);
+                    var offset = 0;
+                    for (var i=2; i<pubData.length; i += 2) {
+                        view[offset++] = parseInt(pubData.substr(i, 2), 16);
+                    }
+                    var addressHex = keccak_256(buffer).substr(24).toLowerCase();
+                    var checksum = keccak_256(addressHex)
+                    var address = "0x";
+                    for (var i = 0; i < addressHex.length; i++) {
+                        if (parseInt(checksum[i], 16) >= 8) {
+                          address += addressHex[i].toUpperCase()
+                        } else {
+                          address += addressHex[i]
+                        }
+                    }
+                }
+                var privkey;
+                if (!network.ethereum) {
+                    privkey = key.privKey.toWIF(network);
+                }
+                else {
+                    privkey = "0x" + key.privKey.d.toString(16);
+                }
                 addAddressToList(index, address, privkey);
             }, 50)
         }
@@ -346,8 +375,20 @@
         var path = "m/";
         path += purpose + "'/";
         path += coin + "'/";
-        path += account + "'/";
-        path += change;
+        if (!network.tmpLedger) {
+            path += account + "'";
+        }
+        else {
+            path += "160720'";
+        }
+        if (!network.ethereum) {
+            path += "/" + change;
+        }
+        else {
+            if (network.tmpLedger) {
+                path += "/0'";
+            }
+        }
         DOM.bip44path.val(path);
         derivationPath = DOM.bip44path.val();
     }
@@ -453,6 +494,27 @@
                 DOM.bip44coin.val(23);
             },
         },
+        {
+            name: "Ethereum",
+            onSelect: function() {
+                network = bitcoin.networks.eth;
+                DOM.bip44coin.val(60);
+            },
+        },
+        {
+            name: "Ethereum Classic",
+            onSelect: function() {
+                network = bitcoin.networks.etc;
+                DOM.bip44coin.val(61);
+            },
+        },
+        {
+            name: "Ethereum Classic (Ledger transitional 1.0.5)",
+            onSelect: function() {
+                network = bitcoin.networks.etctmp;
+                DOM.bip44coin.val(60);
+            },
+        },        
     ]
 
     init();

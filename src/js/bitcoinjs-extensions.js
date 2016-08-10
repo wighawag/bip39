@@ -34,3 +34,34 @@ bitcoin.networks.clam = {
   pubKeyHash: 0x89,
   wif: 0x85,
 };
+
+bitcoin.networks.eth = {
+  bip32: {
+    public: 0xffffffff,
+    private: 0xffffffff
+  },
+  pubKeyHash: 0xff,
+  wif: 0xff,  
+  ethereum : true
+};
+
+bitcoin.networks.etc = {
+  bip32: {
+    public: 0xffffffff,
+    private: 0xffffffff
+  },
+  pubKeyHash: 0xff,
+  wif: 0xff,    
+  ethereum : true
+};
+
+bitcoin.networks.etctmp = {
+  bip32: {
+    public: 0xffffffff,
+    private: 0xffffffff
+  },
+  pubKeyHash: 0xff,
+  wif: 0xff,    
+  ethereum : true,
+  tmpLedger : true
+};
